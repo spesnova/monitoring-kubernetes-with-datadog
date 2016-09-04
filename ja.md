@@ -151,7 +151,7 @@ cAdvisor には上記で用意したカスタムメトリクス用のエンド�
 
 これでカスタムメトリクスが集められるようになる。
 
-(ただ 2016/06/20 現在は cAdvisor におけるカスタムメトリクスのアルファサポートである。)
+(ただ 2016/06/20 現在は cAdvisor におけるカスタムメトリクスはアルファサポートである。)
 
 ### Prometheus
 カスタムメトリクスのところから 突然 Prometheus が出てきたことに「なんで」と思った人もいるかもしれない。Prometheus は SoundCloud によって開発されてきた　OSS のモニタリングツールだ。 Google 内部のモニタリングシステム Borgmon にインスパイアされており (元 Google SRE 達によって開発されている)、 Kubernetes の現在の開発主体である CNCF の正式なコンポーネントにもなっている。
@@ -168,8 +168,8 @@ Kubernetes および cAdvisor はネイティヴで Prometheus をサポート�
 ### Why Datadog？
 中には色々選択肢がある中でなんで Datadog なのかをまず聞きたい人もいると思う。理由は色々あるが特に Kubernetes のモニタリングにおいて重要だと思うものをピックアップする。
 
-- **Docker, Kubernetes ant etcd integration**
-- **Long Data retention**
+- **Docker, Kubernetes and etcd integration**
+- **Long Data retention and high resolution**
 - **Events timeline**
 - **Query based monitoring**
 
@@ -189,7 +189,7 @@ Kubernetes および cAdvisor はネイティヴで Prometheus をサポート�
 
 Kubernetes 環境になると、スケジューリング、オートスケール、オートヒーリング、cron のようなジョブの実行など色んなことが自動で行われるので、何が起きたのかわからなくなる可能性がある。 Kubernetes の各種イベントをタイムラインで見られるのは Kubernetes の運用においてキーとなると思う。
 
-(ちなみに Kubernetes のイベントの取得は現在開発中の模様)
+Kubernetes のイベントの取得は dd-agent への pull request がマージされており、近いうちにリリースされると思われる。
 
 **Query based monitoring**
 
@@ -262,12 +262,10 @@ $ kubectl create -f ops.namespace.yaml
 $ kubectl create -f dd-agent.ds.yaml --namespace=ops
 $ kubectl get nodes --no-headers=true | wc -l
        3
-$ kubectl get ds —namespace=ops
+$ kubectl get ds --namespace=ops
 NAME        DESIRED   CURRENT   NODE-SELECTOR   AGE
 dd-agent   3          3         <none>          1m
 ```
-
-(ここで helmc / helm にも触れるべきかどうか。)
 
 ### Collecting basic resource metrics
 ![collecting-basic-resource-metrics-with-dd-agent](images/collecting-basic-resource-metrics-with-dd-agent.png)
@@ -346,7 +344,7 @@ KV ストアに入れる設定は、git2consul や git2etcd、terraform を使�
 ## What are work metrics for Kubernetes?
 Kubernetes クラスタの work metrics 、つまり Kubernetes クラスタが正常に働いていることをどうやって測るか。
 
-自分の知る限りクラスタ全体の状態を返してくれるエンドポイントなどはない。では Kubernetes が働いてるとはどういうことが考えてみる。一般的な Web アプリケーションであればレスポンスを返すこと。Kubernetes の場合は、コンテナをスケジューリングして、そのコンテナからなるサービスを運用することだと思う。
+自分の知る限りクラスタの状態を返してくれるエンドポイントなどはない。では Kubernetes が働いてるとはどういうことが考えてみる。一般的な Web アプリケーションであればレスポンスを返すこと。Kubernetes の場合は、コンテナをスケジューリングして、そのコンテナからなるサービスを運用することだと思う。
 
 だから少なくとも pods と services に問題がないのであれば Kubernetes は仕事をしてると言っていいと思う。ただ、Pod 側に何か問題があった時 Kubernetes が問題の原因なのかを簡単に切り分けられないのは悩みどころ。
 
@@ -361,6 +359,7 @@ Kubernetes を構成する中の 1 つのサービスは他のサービスを使
 だから Kuberentes クラスタ自体のモニタリングとして、Kubernetes を構成する各コンポーネントをモニタリングする。
 
 ## Kubernetes Components
+Kubernetes の構成要素は大きく以下の 3 種類だ。
 
 - kubelet
 - etcd
@@ -395,12 +394,15 @@ sum:docker.containers.stopped{
 
 もっとも、Kubernetes 自体がオートヒーリングの設計思想になっているため、それらが止まったままということはない。それより起動と起動失敗を繰り返す "crashloop" というステータスかどうかを見る方が良いだろう。現状 Datadog は "crashloop" かどうかは見ていない。
 
-また、componentstatus API というのがある。
-
-TODO: リクエスト結果を貼る
+また、componentstatus API というのがあり、それを利用する Datadog のカスタムチェックを用意すると良い。
 
 ```
-$ curl -X GET http://your-api-url/api/v1/componentstatuses
+$ kubectl get componentstatuses
+NAME                 STATUS    MESSAGE              ERROR
+scheduler            Healthy   ok
+controller-manager   Healthy   ok
+etcd-0               Healthy   {"health": "true"}
+...
 ```
 
 ## Monitoring apiserver
