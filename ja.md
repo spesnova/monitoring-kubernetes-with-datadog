@@ -428,3 +428,10 @@ instances:
 
 ## Monitoring nodes
 Kubernetes ノードのモニタリングについても dd-agent コンテナがデフォルトで行っている。内容は通常のホストモニタリングと変わらない。 Kubernetes ノードのみ見たい場合は、`kubernetes` タグや`kubernetescluster:<CLUSTER_NAME` タグによってフィルタリングできる。
+
+# Conclusion
+Kubernetes のモニタリングには、コンテナのモニタリングと、Kubernetes クラスタ自身のモニタリングの 2 つパートがある。ダイナミックに配置されるコンテナのモニタリングには、Agent as side-cars container, Agent with Service Discovery, そして Query based monitoring というコンセプトが必要になる。小さなサービスの集合である Kubernetes クラスタ自身のモニタリングには、kubelet, etcd, kubernetes components それぞれのモニタリングの "総和" が必要になる。
+
+具体的に Query based monitoring や Agent with Service Discovery を用いたコンテナのモニタリングを実現するツールとして Datadog や Prometheus がある。特にモニタリングデータの保存期間やイベントデータの取り扱いを考慮すると Datadog が特に有力な選択肢である。
+
+今後も Datadog の Kubernetes サポートがさらに発展していくことを期待したい。
